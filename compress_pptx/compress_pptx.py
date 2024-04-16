@@ -19,6 +19,7 @@ from .util import (
 class FileObj(TypedDict):
     is_image: bool
     input: str
+    temporary: str
     output: str
     input_size: int
     output_size: Optional[int]
@@ -35,8 +36,8 @@ def _compress_file(file: FileObj):
             "convert",
             "-quality",
             str(file["quality"]),
-            "-density", "50",
-            "-units", "PixelsPerInch",
+            "-resize",
+            "300x300>",
             "-background",
             "white",
             "-alpha",
@@ -250,6 +251,10 @@ class CompressPptx:
             file_obj: FileObj = {
                 "is_image": is_image,
                 "input": file,
+                "temporary": (
+                    Path(file).parent
+                    / (Path(file).stem + "-temporary" + output_extension)
+                ).as_posix(),
                 "output": (
                     Path(file).parent
                     / (Path(file).stem + "-compressed" + output_extension)
@@ -271,7 +276,7 @@ class CompressPptx:
                     "-f",
                     "jpg",
                     "-o",
-                    file["output"],
+                    file["temporary"],
                     file["input"],
                 ]
                 run_command(cmd, verbose=file["verbose"])
@@ -281,9 +286,19 @@ class CompressPptx:
                     "--convert-to",
                     "jpg",
                     file["input"],
-                    file["output"],
+                    file["temporary"],
                 ]
                 run_command(cmd, verbose=file["verbose"])
+            cmd = [
+                "convert",
+                file["temporary"],
+                "-fuzz",
+                "1%",
+                "-trim",
+                "+repage",
+                file["output"],
+            ]
+            run_command(cmd, verbose=file["verbose"])
 
     def _compress_files(self) -> None:
         if len(self.file_list) == 0:
