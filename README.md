@@ -17,6 +17,7 @@ This script takes all PNG or TIFF images part of the presentation which are larg
 :warning: This is not the same as compressing images with PowerPoint's own functionality. You may still need to do this to reduce the size of your presentation!
 
 PNGs containing transparency can be skipped to prevent graphics issues. Normally their transparent parts are replaced with white (although you can choose another color).
+
 ## Requirements
 
 - Operating system: macOS or Linux
@@ -25,15 +26,21 @@ PNGs containing transparency can be skipped to prevent graphics issues. Normally
 - ImageMagick's `magick` commands (`magick convert` and `magick identify`)
 - Optionally: `ffmpeg` for media files, and
 
-Under Ubuntu, get ImageMagick via:
+Under Ubuntu, install ImageMagick from source and other packages via apt:
 
-```
-apt install imagemagick
+```bash
+apt install libtiff-dev ffmpeg libreoffice unoconv unoserver
+wget https://www.imagemagick.org/download/ImageMagick.tar.gz
+cd ImageMagick-7.***/
+./configure
+make -j 24
+sudo make install
+sudo ldconfig /usr/local/lib
 ```
 
 Under macOS, install it with [Homebrew](https://brew.sh):
 
-```
+```bash
 brew install imagemagick
 ```
 
@@ -43,17 +50,23 @@ For ffmpeg, use the static builds from [ffmpeg.org](https://ffmpeg.org/downloads
 
 Via pip:
 
-```
+```bash
 pip3 install --user compress-pptx
 ```
 
 ## Usage
 
-Call `compress-pptx` and point it to a PPTX or POTX file. It'll compress the images and output another compressed file next to it.
+Before calling `compress-pptx`, launch an unoserver:
+
+```bash
+unoserver
+```
+
+Then call `compress-pptx` and point it to a PPTX or POTX file. It'll compress the images and output another compressed file next to it.
 
 For more options, see the `-h` output:
 
-```
+```text
 usage: compress-pptx [-h] [-o OUTPUT] [-s SIZE] [-q QUALITY] [-t TRANSPARENCY]
                      [-k] [-v] [-f] [-m] [-j] [-l] [--num-cpus NUM_CPUS]
                      input

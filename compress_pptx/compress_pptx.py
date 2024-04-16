@@ -35,18 +35,21 @@ def _compress_file(file: FileObj):
             "convert",
             "-quality",
             str(file["quality"]),
+            "-density", "50",
+            "-units", "PixelsPerInch",
             "-background",
             "white",
             "-alpha",
             "remove",
             "-alpha",
             "off",
-            file["input"] + "[0]",  # add [0] to use only the first page of TIFFs
+            # add [0] to use only the first page of TIFFs
+            file["input"] + "[0]",
             file["output"],
         ]
     else:
         # video, use ffmpeg
-        cmd = ["ffmpeg", "-i", file["input"], file["output"]]
+        cmd = ["ffmpeg", "-i", file["input"], "-b:v", "80k", file["output"]]
     run_command(cmd, verbose=file["verbose"])
 
 
@@ -117,7 +120,7 @@ class CompressPptx:
             self.image_extensions.extend([".jpg", ".jpeg"])
         self.converted_image_extension = ".jpg"
 
-        self.video_extensions = [".mov", ".avi", ".mp4"]
+        self.video_extensions = [".mov", ".avi", ".mp4", ".wmv"]
         self.converted_video_extensions = ".mp4"
         self.audio_extensions = [".mp3", ".wav"]
         self.converted_audio_extensions = ".mp3"
@@ -128,9 +131,10 @@ class CompressPptx:
         # add ffmpeg to required executables if user wants media files to be compressed
         if self.compress_media:
             required_executables.append("ffmpeg")
-        # add "unoconv" (libreoffice package) to required executables of user wants emf files compressed
+        # add "unoconv" and "unoconvert" (libreoffice package) to required executables of user wants emf files compressed
         if self.use_libreoffice:
             required_executables.append("unoconv")
+            required_executables.append("unoconvert")
 
         for expected_cmd in required_executables:
             if which(expected_cmd) is None:
@@ -217,9 +221,9 @@ class CompressPptx:
                     elif self._check_endswith(file, self.audio_extensions):
                         output_extension = self.converted_audio_extensions
                     else:
-                        continue  ## file is not a media file
+                        continue  # file is not a media file
                 else:
-                    continue  ## file is not an image
+                    continue  # file is not an image
 
             # skip files that are too small
             fsize = file_size(file)
@@ -261,15 +265,25 @@ class CompressPptx:
 
     def _libreoffice_compress_files(self, files: List[FileObj]):
         for file in files:
-            cmd = [
-                "unoconv",
-                "-f",
-                "jpg",
-                "-o",
-                file["output"],
-                file["input"],
-            ]
-            run_command(cmd, verbose=file["verbose"])
+            try:
+                cmd = [
+                    "unoconv",
+                    "-f",
+                    "jpg",
+                    "-o",
+                    file["output"],
+                    file["input"],
+                ]
+                run_command(cmd, verbose=file["verbose"])
+            except RuntimeError:
+                cmd = [
+                    "unoconvert",
+                    "--convert-to",
+                    "jpg",
+                    file["input"],
+                    file["output"],
+                ]
+                run_command(cmd, verbose=file["verbose"])
 
     def _compress_files(self) -> None:
         if len(self.file_list) == 0:
@@ -281,10 +295,12 @@ class CompressPptx:
                 print(f"Compressing {file['input']} to {file['output']}")
 
         # compress files with "magick convert" and "ffmpeg" in parallel
-        non_emf_files = [f for f in self.file_list if not f["input"].endswith(".emf")]
+        non_emf_files = [
+            f for f in self.file_list if not f["input"].endswith(".emf")]
         print(f"Compressing {len(non_emf_files)} file(s) ...")
         if self.num_cpus > 1:
-            process_map(_compress_file, non_emf_files, max_workers=self.num_cpus)
+            process_map(_compress_file, non_emf_files,
+                        max_workers=self.num_cpus)
         else:
             for file in non_emf_files:
                 _compress_file(file)
@@ -299,7 +315,8 @@ class CompressPptx:
             else:
                 # compress ".emf" files using "magick convert" which works only on windows
                 if self.num_cpus > 1:
-                    process_map(_compress_file, emf_files, max_workers=self.num_cpus)
+                    process_map(_compress_file, emf_files,
+                                max_workers=self.num_cpus)
                 else:
                     for file in emf_files:
                         _compress_file(file)
