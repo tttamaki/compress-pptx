@@ -290,12 +290,15 @@ class CompressPptx:
                 ]
                 run_command(cmd, verbose=file["verbose"])
             cmd = [
+                "magick",
                 "convert",
-                file["temporary"],
+                "-quality",
+                str(file["quality"]),
                 "-fuzz",
                 "1%",
                 "-trim",
                 "+repage",
+                file["temporary"],
                 file["output"],
             ]
             run_command(cmd, verbose=file["verbose"])
