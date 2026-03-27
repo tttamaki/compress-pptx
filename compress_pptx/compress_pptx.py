@@ -134,7 +134,7 @@ class CompressPptx:
             required_executables.append("ffmpeg")
         # add "unoconv" and "unoconvert" (libreoffice package) to required executables of user wants emf files compressed
         if self.use_libreoffice:
-            required_executables.append("unoconv")
+            # required_executables.append("unoconv")
             required_executables.append("unoconvert")
 
         for expected_cmd in required_executables:
@@ -270,25 +270,25 @@ class CompressPptx:
 
     def _libreoffice_compress_files(self, files: List[FileObj]):
         for file in files:
-            try:
-                cmd = [
-                    "unoconv",
-                    "-f",
-                    "jpg",
-                    "-o",
-                    file["temporary"],
-                    file["input"],
-                ]
-                run_command(cmd, verbose=file["verbose"])
-            except RuntimeError:
-                cmd = [
+#            try:
+#                cmd = [
+#                    "unoconv",
+#                    "-f",
+#                    "jpg",
+#                    "-o",
+#                    file["temporary"],
+#                    file["input"],
+#                ]
+#                run_command(cmd, verbose=file["verbose"])
+#            except RuntimeError:
+            cmd = [
                     "unoconvert",
                     "--convert-to",
                     "jpg",
                     file["input"],
                     file["temporary"],
-                ]
-                run_command(cmd, verbose=file["verbose"])
+            ]
+            run_command(cmd, verbose=file["verbose"])
             cmd = [
                 "magick",
                 "convert",
